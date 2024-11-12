@@ -32,14 +32,15 @@ public class UserController {
     @PutMapping
     public User updateUser(@RequestBody User user) {
         validateUser(user);
+
         if (users.containsKey(user.getId())) {
             users.put(user.getId(), user);
             log.info("Обновлён пользователь: {}", user);
-        } else {
-            log.error("Пользователь с id {} не найден для обновления", user.getId());
-            throw new UserNotFoundException("User not found for update");
+            return user;
         }
-        return user;
+
+        log.error("Пользователь с id {} не найден для обновления", user.getId());
+        throw new UserNotFoundException("User not found for update");
     }
 
 

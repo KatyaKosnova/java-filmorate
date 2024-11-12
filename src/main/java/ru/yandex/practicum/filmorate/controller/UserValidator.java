@@ -1,22 +1,15 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import org.springframework.validation.Errors;
-import org.springframework.validation.Validator;
+import ru.yandex.practicum.filmorate.model.GenericValidator;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 
-public class UserValidator implements Validator {
+public class UserValidator implements GenericValidator<User> {
 
     @Override
-    public boolean supports(Class<?> clazz) {
-        return User.class.equals(clazz);
-    }
-
-    @Override
-    public void validate(Object target, Errors errors) {
-        User user = (User) target;
-
+    public void validate(User user, Errors errors) {
         // Валидация email
         if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
             errors.rejectValue("email", "invalid.email", "Электронная почта не может быть пустой и должна содержать символ '@'.");

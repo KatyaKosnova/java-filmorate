@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import org.springframework.util.StringUtils;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -19,7 +20,7 @@ public class FilmValidator implements Validator {
     public void validate(Object target, Errors errors) {
         Film film = (Film) target;
 
-        if (film.getName() == null || film.getName().isBlank()) {
+        if (!StringUtils.hasText(film.getName())) {
             errors.rejectValue("name", "field.required", "Название фильма не может быть пустым.");
         }
 

@@ -1,44 +1,95 @@
 package ru.yandex.practicum.filmorate;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.ValidationUtils;
-import org.springframework.validation.Validator;
+import org.springframework.validation.Errors;
+import org.springframework.validation.MapBindingResult;
 import ru.yandex.practicum.filmorate.controller.UserValidator;
 import ru.yandex.practicum.filmorate.model.User;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class UserTest {
 
-    private final Validator validator = new UserValidator(); // Ваш валидатор
+    private UserValidator userValidator;
+    private Errors errors;
 
-    @Test
-    void testUserValidation_ValidUser() {
-        User user = new User();
-        user.setEmail("valid.email@example.com");
-        user.setLogin("validlogin");
-        user.setName("Valid User");
-        user.setBirthday(LocalDate.parse("1990-01-01")); // Используем LocalDate
-
-        BeanPropertyBindingResult errors = new BeanPropertyBindingResult(user, "user");
-        ValidationUtils.invokeValidator(validator, user, errors);
-        assertFalse(errors.hasErrors(), "Should not have validation errors");
+    @BeforeEach
+    void setUp() {
+        userValidator = new UserValidator();
+        errors = new MapBindingResult(new java.util.HashMap<>(), "user");
     }
 
     @Test
-    void testUserValidation_InvalidUser() {
-        User user = new User();
-        user.setEmail("invalid.email"); // Неверный email
-        user.setLogin("invalid login"); // Логин с пробелами
-        user.setName(""); // Имя пустое
-        user.setBirthday(LocalDate.parse("2025-01-01")); // Дата рождения в будущем
+    void validate_ValidUser_NoErrors() {
+        User validUser = new User();
+        validUser.setEmail("valid@example.com");
+        validUser.setLogin("validLogin");
+        validUser.setName("Valid User");
+        validUser.setBirthday(LocalDate.of(1990, 1, 1));
 
-        BeanPropertyBindingResult errors = new BeanPropertyBindingResult(user, "user");
-        ValidationUtils.invokeValidator(validator, user, errors);
+        userValidator.validate(validUser, errors);
 
-        assertTrue(errors.hasErrors(), "Should have validation errors");
+        assertFalse(errors.hasErrors(), "There should be no validation errors.");
+    }
+
+    @Test
+    void validate_InvalidEmail_ErrorAdded() {
+        User invalidUser = new User();
+        invalidUser.setEmail("invalidemail");
+        invalidUser.setLogin("validLogin");
+        invalidUser.setName("Valid User");
+        invalidUser.setBirthday(LocalDate.of(1990, 1, 1));
+
+        userValidator.validate(invalidUser, errors);
+
+        assertTrue(errors.hasFieldErrors("email"), "There should be a validation error on the email field.");
+        assertEquals("Электронная почта не может быть пустой и должна содержать символ '@'.",
+                errors.getFieldError("email").getDefaultMessage());
+    }
+
+    @Test
+    void validate_InvalidLoginWithSpaces_ErrorAdded() {
+        User invalidUser = new User();
+        invalidUser.setEmail("valid@example.com");
+        invalidUser.setLogin("invalid Login");
+        invalidUser.setName("Valid User");
+        invalidUser.setBirthday(LocalDate.of(1990, 1, 1));
+
+        userValidator.validate(invalidUser, errors);
+
+        assertTrue(errors.hasFieldErrors("login"), "There should be a validation error on the login field.");
+        assertEquals("Логин не может быть пустым и не должен содержать пробелы.",
+                errors.getFieldError("login").getDefaultMessage());
+    }
+
+    @Test
+    void validate_EmptyName_SetLoginAsName() {
+        User userWithEmptyName = new User();
+        userWithEmptyName.setEmail("valid@example.com");
+        userWithEmptyName.setLogin("validLogin");
+        userWithEmptyName.setName("");  // Empty name
+        userWithEmptyName.setBirthday(LocalDate.of(1990, 1, 1));
+
+        userValidator.validate(userWithEmptyName, errors);
+
+        assertFalse(errors.hasErrors(), "There should be no validation errors.");
+        assertEquals("validLogin", userWithEmptyName.getName(), "Name should be set to login when empty.");
+    }
+
+    @Test
+    void validate_BirthdayInFuture_ErrorAdded() {
+        User userWithFutureBirthday = new User();
+        userWithFutureBirthday.setEmail("valid@example.com");
+        userWithFutureBirthday.setLogin("validLogin");
+        userWithFutureBirthday.setName("Valid User");
+        userWithFutureBirthday.setBirthday(LocalDate.now().plusDays(1)); // Future date
+
+        userValidator.validate(userWithFutureBirthday, errors);
+
+        assertTrue(errors.hasFieldErrors("birthday"), "There should be a validation error on the birthday field.");
+        assertEquals("Дата рождения не может быть в будущем.",
+                errors.getFieldError("birthday").getDefaultMessage());
     }
 }
