@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 public class InMemoryUserStorage implements UserStorage {
@@ -22,15 +23,18 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User updateUser(User user) {
-        if (users.containsKey(user.getId())) {
-            users.put(user.getId(), user);
-            return user;
+        if (!users.containsKey(user.getId())) {
+            throw new IllegalArgumentException("Пользователь с ID " + user.getId() + " не найден.");
         }
-        throw new IllegalArgumentException("Пользователь с ID " + user.getId() + " не найден.");
+        users.put(user.getId(), user);
+        return user;
     }
 
     @Override
     public void deleteUser(int id) {
+        if (!users.containsKey(id)) {
+            throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
+        }
         users.remove(id);
     }
 
@@ -41,6 +45,7 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User getUserById(int id) {
-        return users.get(id);
+        return Optional.ofNullable(users.get(id))
+                .orElseThrow(() -> new IllegalArgumentException("Пользователь с ID " + id + " не найден."));
     }
 }

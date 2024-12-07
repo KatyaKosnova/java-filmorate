@@ -20,6 +20,7 @@ public class UserController {
         this.userService = userService;
     }
 
+    // Создание пользователя
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
         log.info("Создание пользователя: {}", user);
@@ -32,6 +33,7 @@ public class UserController {
         }
     }
 
+    // Обновление пользователя
     @PutMapping
     public ResponseEntity<User> updateUser(@RequestBody User user) {
         log.info("Обновление пользователя: {}", user);
@@ -44,6 +46,7 @@ public class UserController {
         }
     }
 
+    // Получение пользователя по ID
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable int id) {
         log.info("Получение пользователя с ID: {}", id);
@@ -56,6 +59,7 @@ public class UserController {
         }
     }
 
+    // Получение списка всех пользователей
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         log.info("Получение списка всех пользователей");
@@ -63,6 +67,7 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    // Добавление друга
     @PutMapping("/{id}/friends/{friendId}")
     public ResponseEntity<Void> addFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("Добавление друга: {} к {}", friendId, id);
@@ -75,6 +80,7 @@ public class UserController {
         }
     }
 
+    // Удаление друга
     @DeleteMapping("/{id}/friends/{friendId}")
     public ResponseEntity<Void> removeFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("Удаление друга: {} у {}", friendId, id);
@@ -87,6 +93,7 @@ public class UserController {
         }
     }
 
+    // Получение списка друзей пользователя
     @GetMapping("/{id}/friends")
     public ResponseEntity<List<User>> getFriends(@PathVariable int id) {
         log.info("Получение списка друзей пользователя с ID: {}", id);
@@ -99,6 +106,7 @@ public class UserController {
         }
     }
 
+    // Получение списка общих друзей
     @GetMapping("/{id}/friends/common/{otherId}")
     public ResponseEntity<List<User>> getCommonFriends(@PathVariable int id, @PathVariable int otherId) {
         log.info("Получение общих друзей пользователей с ID: {} и {}", id, otherId);
