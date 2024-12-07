@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @RestController
@@ -24,9 +26,34 @@ public class UserController {
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
         log.info("Создание пользователя: {}", user);
+
+        // Validate login: Ensure no spaces or invalid characters
+        if (user.getLogin().contains(" ") || !user.getLogin().matches("^[a-zA-Z0-9_]+$")) {
+            log.error("Неверный формат логина: {}", user.getLogin());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
+        // Validate email: Check if it has a valid format using regex
+        String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
+        if (!user.getEmail().matches(emailRegex)) {
+            log.error("Неверный формат email: {}", user.getEmail());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
+        // Validate birthday: Ensure it's a valid past date
+        try {
+            LocalDate birthday = user.getBirthday(); // Assuming this is a LocalDate object
+            if (birthday.isAfter(LocalDate.now())) {
+                log.error("Дата рождения не может быть в будущем: {}", user.getBirthday());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            }
+        } catch (Exception e) {
+            log.error("Ошибка при обработке даты рождения: {}", user.getBirthday());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
         try {
             User createdUser = userService.addUser(user);
-            log.info("Пользователь создан с ID: {}", createdUser.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
         } catch (Exception e) {
             log.error("Ошибка при создании пользователя: {}", e.getMessage());
