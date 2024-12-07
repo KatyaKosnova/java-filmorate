@@ -35,15 +35,19 @@ public class UserService {
     public User updateUser(User user) {
         return userStorage.updateUser(user);
     }
+
     public Collection<User> getUsers() {
         return userStorage.getUsers();
     }
+
     public User deleteUser(User user) {
         return userStorage.deleteUser(user);
     }
+
     public User getUserById(Long id) {
         return userStorage.getUserById(id);
     }
+
     public void addFriend(Long id, Long friendId) {
         User user = userStorage.getUserById(id);
         User userFriend = userStorage.getUserById(friendId);
