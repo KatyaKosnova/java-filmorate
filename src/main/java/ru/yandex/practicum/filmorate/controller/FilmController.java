@@ -9,8 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
-import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
+import ru.yandex.practicum.filmorate.exception.ResourceNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -41,6 +40,7 @@ public class FilmController {
         log.info("Request film by id = {}", id);
         return filmService.getFilmById(id);
     }
+
 
     @PostMapping
     public ResponseEntity<Film> createFilm(@Valid @RequestBody Film film) {
@@ -92,17 +92,15 @@ public class FilmController {
         return new ResponseEntity<>(message.toString(), HttpStatus.BAD_REQUEST);
     }
 
-    @PostMapping("/{filmId}/like/{userId}")
+    @PutMapping("/films/{filmId}/like/{userId}")
     public ResponseEntity<?> addLike(@PathVariable Long filmId, @PathVariable Long userId) {
         try {
-            filmService.addLike(filmId, userId);
-            return ResponseEntity.ok().build();
-        } catch (FilmNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Film not found");
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            filmService.addLike(filmId, userId);  // Вызов метода добавления лайка
+            return ResponseEntity.ok().build();  // Возвращаем 200 OK, если все прошло успешно
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());  // Возвращаем 404, если ресурс не найден
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");  // Возвращаем 500, если ошибка на сервере
         }
     }
 }
