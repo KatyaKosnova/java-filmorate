@@ -26,6 +26,7 @@ public class UserController {
         log.info("Создание пользователя: {}", user);
         try {
             User createdUser = userService.addUser(user);
+            log.info("Пользователь создан с ID: {}", createdUser.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
         } catch (Exception e) {
             log.error("Ошибка при создании пользователя: {}", e.getMessage());
