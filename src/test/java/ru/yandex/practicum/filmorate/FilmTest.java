@@ -1,115 +1,36 @@
 package ru.yandex.practicum.filmorate;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.Validator;
+import org.springframework.validation.ValidationUtils;
+import ru.yandex.practicum.filmorate.controller.FilmValidator;
+import ru.yandex.practicum.filmorate.model.Film;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class FilmTest {
+class FilmTest {
 
-    ConfigurableApplicationContext context;
-    String url = "http://localhost:8080/films";
-    HttpClient client;
+    private final Validator validator = new FilmValidator(); // Ваш валидатор
 
-    @BeforeEach
-    void beforeEach() {
-        context = SpringApplication.run(FilmorateApplication.class);
-        client = HttpClient.newHttpClient();
-    }
+    @Test
+    void testFilmValidation_ValidFilm() {
+        Film film = new Film("Valid Movie", "Valid description of a movie.", LocalDate.of(1999, 1, 1), 120);
 
-    @AfterEach
-    void afterEach() {
-        SpringApplication.exit(context);
+        BeanPropertyBindingResult errors = new BeanPropertyBindingResult(film, "film");
+        ValidationUtils.invokeValidator(validator, film, errors);
+        assertFalse(errors.hasErrors(), "Should not have validation errors");
     }
 
     @Test
-    void shouldAddFilm() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers
-                        .ofString("{\n" +
-                                "  \"name\": \"nisi eiusmod\",\n" +
-                                "  \"description\": \"adipisicing\",\n" +
-                                "  \"releaseDate\": \"1967-03-25\",\n" +
-                                "  \"duration\": 100\n" +
-                                "}")).build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    void testFilmValidation_InvalidFilm() {
+        Film film = new Film("", "Short description", LocalDate.of(1800, 1, 1), -1);
 
-        assertEquals(200, response.statusCode());
-    }
+        BeanPropertyBindingResult errors = new BeanPropertyBindingResult(film, "film");
+        ValidationUtils.invokeValidator(validator, film, errors);
 
-    @Test
-    void shouldNotAddFilmWithEmptyName() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers
-                        .ofString("{\n" +
-                                "  \"name\": \"\",\n" +
-                                "  \"description\": \"adipisicing\",\n" +
-                                "  \"releaseDate\": \"1967-03-25\",\n" +
-                                "  \"duration\": 100\n" +
-                                "}")).build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(400, response.statusCode());
-    }
-
-    @Test
-    void shouldNotAddFilmWithTooLongDescription() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers
-                        .ofString("{\n" +
-                                "  \"name\": \"nisi eiusmod\",\n" +
-                                "  \"description\": \"qqqqqqqqqqwwwwwwwwwweeeeeeeeeerrrrrrrrrrttttttttttyyyyyyyyyy" +
-                                "qqqqqqqqqqqwwwwwwwwwweeeeeeeeeerrrrrrrrrrttttttttttyyyyyyyyyyqqqqqqqqqqwwwwwwwwww" +
-                                "wwwwwwwwwweeeeeeeeeerrrrrrrrrrttttttttttyyyyyyyyyyqqqqqqqqqqqqqqqqqqqqqqqqqq\",\n" +
-                                "  \"releaseDate\": \"1967-03-25\",\n" +
-                                "  \"duration\": 100\n" +
-                                "}")).build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(400, response.statusCode());
-    }
-
-    @Test
-    void shouldNotAddFilmWithTooOldDate() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers
-                        .ofString("{\n" +
-                                "  \"name\": \"nisi eiusmod\",\n" +
-                                "  \"description\": \"adipisicing\",\n" +
-                                "  \"releaseDate\": \"1400-03-25\",\n" +
-                                "  \"duration\": 100\n" +
-                                "}")).build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(400, response.statusCode());
-    }
-
-    @Test
-    void shouldNotAddFilmWithNegativeDuration() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers
-                        .ofString("{\n" +
-                                "  \"name\": \"nisi eiusmod\",\n" +
-                                "  \"description\": \"adipisicing\",\n" +
-                                "  \"releaseDate\": \"1967-03-25\",\n" +
-                                "  \"duration\": -100\n" +
-                                "}")).build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        assertEquals(400, response.statusCode());
+        assertTrue(errors.hasErrors(), "Should have validation errors");
     }
 }

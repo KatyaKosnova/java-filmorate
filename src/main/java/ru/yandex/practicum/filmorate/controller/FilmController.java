@@ -2,7 +2,11 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
@@ -65,4 +69,14 @@ public class FilmController {
         if (count == null) count = 10;
         return filmService.getFilmsByRating(count);
     }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        StringBuilder message = new StringBuilder("Validation failed: ");
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            message.append(error.getField()).append(" - ").append(error.getDefaultMessage()).append("; ");
+        }
+        return new ResponseEntity<>(message.toString(), HttpStatus.BAD_REQUEST);
+    }
+
 }

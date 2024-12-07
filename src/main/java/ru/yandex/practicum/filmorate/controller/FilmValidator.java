@@ -35,5 +35,10 @@ public class FilmValidator implements Validator {
         if (film.getDuration() <= 0) {
             errors.rejectValue("duration", "field.invalid", "Продолжительность фильма должна быть положительным числом.");
         }
+
+        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(EARLIEST_RELEASE_DATE)) {
+            errors.rejectValue("releaseDate", "field.invalid", "Дата релиза не может быть раньше 28 декабря 1895 года.");
+        }
+
     }
 }
