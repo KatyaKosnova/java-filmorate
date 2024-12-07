@@ -18,16 +18,27 @@ public class UserService {
 
     // Добавить пользователя
     public User addUser(User user) {
+        if (userStorage.getUserById(user.getId()) != null) {
+            throw new IllegalArgumentException("Пользователь с таким ID уже существует.");
+        }
         return userStorage.addUser(user);
     }
 
     // Обновить пользователя
     public User updateUser(User user) {
+        User existingUser = userStorage.getUserById(user.getId());
+        if (existingUser == null) {
+            throw new IllegalArgumentException("Пользователь с таким ID не найден.");
+        }
         return userStorage.updateUser(user);
     }
 
     // Удалить пользователя (если необходимо)
     public void deleteUser(int id) {
+        User user = userStorage.getUserById(id);
+        if (user == null) {
+            throw new IllegalArgumentException("Пользователь с таким ID не найден.");
+        }
         userStorage.deleteUser(id);
     }
 
@@ -40,16 +51,19 @@ public class UserService {
     public void addFriend(int userId, int friendId) {
         User user = getUserById(userId);
         User friend = getUserById(friendId);
-        user.addFriend(friendId);  // добавляем friendId в список друзей пользователя
-        friend.addFriend(userId);  // добавляем userId в список друзей друга
+        if (user.isFriend(friendId)) {
+            throw new IllegalArgumentException("Этот пользователь уже в списке друзей.");
+        }
+        user.addFriend(friendId);
+        friend.addFriend(userId);
     }
 
     // Удалить друга
     public void removeFriend(int userId, int friendId) {
         User user = getUserById(userId);
         User friend = getUserById(friendId);
-        user.removeFriend(friendId);  // удаляем friendId из списка друзей пользователя
-        friend.removeFriend(userId);  // удаляем userId из списка друзей друга
+        user.removeFriend(friendId);
+        friend.removeFriend(userId);
     }
 
     // Получить список друзей пользователя в виде List<User>
@@ -67,10 +81,8 @@ public class UserService {
 
     // Получить общих друзей
     public List<User> getCommonFriends(int userId, int otherId) {
-        List<User> friends = getFriends(userId);
+        List<User> friends = new ArrayList<>(getFriends(userId));
         List<User> otherFriends = getFriends(otherId);
-
-        // Находим пересечение списков друзей
         friends.retainAll(otherFriends);
         return friends;
     }

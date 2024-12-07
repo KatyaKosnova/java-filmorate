@@ -1,6 +1,8 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
@@ -19,50 +21,93 @@ public class UserController {
     }
 
     @PostMapping
-    public User createUser(@RequestBody User user) {
+    public ResponseEntity<User> createUser(@RequestBody User user) {
         log.info("Создание пользователя: {}", user);
-        return userService.addUser(user);
+        try {
+            User createdUser = userService.addUser(user);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+        } catch (Exception e) {
+            log.error("Ошибка при создании пользователя: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 
     @PutMapping
-    public User updateUser(@RequestBody User user) {
+    public ResponseEntity<User> updateUser(@RequestBody User user) {
         log.info("Обновление пользователя: {}", user);
-        return userService.updateUser(user);
+        try {
+            User updatedUser = userService.updateUser(user);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            log.error("Ошибка при обновлении пользователя: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 
     @GetMapping("/{id}")
-    public User getUserById(@PathVariable int id) {
+    public ResponseEntity<User> getUserById(@PathVariable int id) {
         log.info("Получение пользователя с ID: {}", id);
-        return userService.getUserById(id);
+        try {
+            User user = userService.getUserById(id);
+            return ResponseEntity.ok(user);
+        } catch (IllegalArgumentException e) {
+            log.error("Пользователь с ID {} не найден", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
     }
 
     @GetMapping
-    public List<User> getAllUsers() {
+    public ResponseEntity<List<User>> getAllUsers() {
         log.info("Получение списка всех пользователей");
-        return userService.getAllUsers();
+        List<User> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
     }
 
     @PutMapping("/{id}/friends/{friendId}")
-    public void addFriend(@PathVariable int id, @PathVariable int friendId) {
+    public ResponseEntity<Void> addFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("Добавление друга: {} к {}", friendId, id);
-        userService.addFriend(id, friendId);
+        try {
+            userService.addFriend(id, friendId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка добавления друга: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
-    public void removeFriend(@PathVariable int id, @PathVariable int friendId) {
+    public ResponseEntity<Void> removeFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("Удаление друга: {} у {}", friendId, id);
-        userService.removeFriend(id, friendId);
+        try {
+            userService.removeFriend(id, friendId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка удаления друга: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     @GetMapping("/{id}/friends")
-    public List<User> getFriends(@PathVariable int id) {
+    public ResponseEntity<List<User>> getFriends(@PathVariable int id) {
         log.info("Получение списка друзей пользователя с ID: {}", id);
-        return userService.getFriends(id);
+        try {
+            List<User> friends = userService.getFriends(id);
+            return ResponseEntity.ok(friends);
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка при получении списка друзей: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")
-    public List<User> getCommonFriends(@PathVariable int id, @PathVariable int otherId) {
+    public ResponseEntity<List<User>> getCommonFriends(@PathVariable int id, @PathVariable int otherId) {
         log.info("Получение общих друзей пользователей с ID: {} и {}", id, otherId);
-        return userService.getCommonFriends(id, otherId);
+        try {
+            List<User> commonFriends = userService.getCommonFriends(id, otherId);
+            return ResponseEntity.ok(commonFriends);
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка при получении общих друзей: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
     }
 }
