@@ -6,9 +6,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface FilmStorage {
+
     Film addFilm(Film film);
+
     Film updateFilm(Film film);
+
     void deleteFilm(int id);
+
     List<Film> getAllFilms();
+
     Optional<Film> getFilmById(int id); // Возвращаем Optional, чтобы использовать его в сервисе
 }
