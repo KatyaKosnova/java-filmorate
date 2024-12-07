@@ -1,44 +1,115 @@
 package ru.yandex.practicum.filmorate;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.Validator;
-import org.springframework.validation.ValidationUtils;
-import ru.yandex.practicum.filmorate.controller.FilmValidator;
-import ru.yandex.practicum.filmorate.model.Film;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
-import java.time.LocalDate;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class FilmTest {
+public class FilmTest {
 
-    private final Validator validator = new FilmValidator(); // Ваш валидатор
+    ConfigurableApplicationContext context;
+    String url = "http://localhost:8080/films";
+    HttpClient client;
 
-    @Test
-    void testFilmValidation_ValidFilm() {
-        Film film = new Film();
-        film.setName("Valid Movie");
-        film.setDescription("Valid description of a movie.");
-        film.setReleaseDate(LocalDate.of(1999, 1, 1)); // Дата релиза, которая подходит
-        film.setDuration(120); // Положительная продолжительность
+    @BeforeEach
+    void beforeEach() {
+        context = SpringApplication.run(FilmorateApplication.class);
+        client = HttpClient.newHttpClient();
+    }
 
-        BeanPropertyBindingResult errors = new BeanPropertyBindingResult(film, "film");
-        ValidationUtils.invokeValidator(validator, film, errors);
-        assertFalse(errors.hasErrors(), "Should not have validation errors");
+    @AfterEach
+    void afterEach() {
+        SpringApplication.exit(context);
     }
 
     @Test
-    void testFilmValidation_InvalidFilm() {
-        Film film = new Film();
-        film.setName(""); // Пустое название
-        film.setDescription("Short description"); // Длинное описание
-        film.setReleaseDate(LocalDate.of(1800, 1, 1)); // Неверная дата релиза
-        film.setDuration(-1); // Неверная продолжительность
+    void shouldAddFilm() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers
+                        .ofString("{\n" +
+                                "  \"name\": \"nisi eiusmod\",\n" +
+                                "  \"description\": \"adipisicing\",\n" +
+                                "  \"releaseDate\": \"1967-03-25\",\n" +
+                                "  \"duration\": 100\n" +
+                                "}")).build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        BeanPropertyBindingResult errors = new BeanPropertyBindingResult(film, "film");
-        ValidationUtils.invokeValidator(validator, film, errors);
+        assertEquals(200, response.statusCode());
+    }
 
-        assertTrue(errors.hasErrors(), "Should have validation errors");
+    @Test
+    void shouldNotAddFilmWithEmptyName() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers
+                        .ofString("{\n" +
+                                "  \"name\": \"\",\n" +
+                                "  \"description\": \"adipisicing\",\n" +
+                                "  \"releaseDate\": \"1967-03-25\",\n" +
+                                "  \"duration\": 100\n" +
+                                "}")).build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(400, response.statusCode());
+    }
+
+    @Test
+    void shouldNotAddFilmWithTooLongDescription() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers
+                        .ofString("{\n" +
+                                "  \"name\": \"nisi eiusmod\",\n" +
+                                "  \"description\": \"qqqqqqqqqqwwwwwwwwwweeeeeeeeeerrrrrrrrrrttttttttttyyyyyyyyyy" +
+                                "qqqqqqqqqqqwwwwwwwwwweeeeeeeeeerrrrrrrrrrttttttttttyyyyyyyyyyqqqqqqqqqqwwwwwwwwww" +
+                                "wwwwwwwwwweeeeeeeeeerrrrrrrrrrttttttttttyyyyyyyyyyqqqqqqqqqqqqqqqqqqqqqqqqqq\",\n" +
+                                "  \"releaseDate\": \"1967-03-25\",\n" +
+                                "  \"duration\": 100\n" +
+                                "}")).build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(400, response.statusCode());
+    }
+
+    @Test
+    void shouldNotAddFilmWithTooOldDate() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers
+                        .ofString("{\n" +
+                                "  \"name\": \"nisi eiusmod\",\n" +
+                                "  \"description\": \"adipisicing\",\n" +
+                                "  \"releaseDate\": \"1400-03-25\",\n" +
+                                "  \"duration\": 100\n" +
+                                "}")).build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(400, response.statusCode());
+    }
+
+    @Test
+    void shouldNotAddFilmWithNegativeDuration() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers
+                        .ofString("{\n" +
+                                "  \"name\": \"nisi eiusmod\",\n" +
+                                "  \"description\": \"adipisicing\",\n" +
+                                "  \"releaseDate\": \"1967-03-25\",\n" +
+                                "  \"duration\": -100\n" +
+                                "}")).build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(400, response.statusCode());
     }
 }

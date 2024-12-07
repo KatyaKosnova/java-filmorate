@@ -1,34 +1,23 @@
 package ru.yandex.practicum.filmorate.model;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
+import javax.validation.constraints.*;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
-@Getter
-@Setter
+@Data
 public class User {
-    private int id;                // целочисленный идентификатор
-    private String email;          // электронная почта
-    private String login;          // логин пользователя
-    private String name;           // имя для отображения
-    private LocalDate birthday;    // дата рождения
-    private Set<Integer> friends = new HashSet<>(); // Список ID друзей
+    private Long id;
+    @NotNull @Email private String email;
+    @Pattern(regexp = "\\S+") private String login;
+    private String name;
+    @NotNull @Past private LocalDate birthday;
+    private Set<Long> friends = new HashSet<>();
 
-    // Добавить друга
-    public void addFriend(int friendId) {
-        friends.add(friendId);
-    }
-
-    // Удалить друга
-    public void removeFriend(int friendId) {
-        friends.remove(friendId);
-    }
-
-    // Проверить, является ли пользователь другом
-    public boolean isFriend(int friendId) {
-        return friends.contains(friendId);
+    public String getName() {
+        if (name == null || name.isBlank()) return login;
+        else return name;
     }
 }

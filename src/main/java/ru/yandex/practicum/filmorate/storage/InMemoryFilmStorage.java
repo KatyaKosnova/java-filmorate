@@ -1,52 +1,54 @@
 package ru.yandex.practicum.filmorate.storage;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-@Component
+@Slf4j
+@Component("inMemoryFilmStorage")
 public class InMemoryFilmStorage implements FilmStorage {
-    private final Map<Integer, Film> films = new HashMap<>();
-    private int idCounter = 1;
+    private final Map<Long, Film> films = new HashMap<>();
 
-    // Добавление нового фильма
     @Override
     public Film addFilm(Film film) {
-        film.setId(idCounter++);
         films.put(film.getId(), film);
+        log.info("New film added: {}", film);
         return film;
     }
 
-    // Обновление информации о фильме
     @Override
     public Film updateFilm(Film film) {
+        Long id = film.getId();
+        if (!films.containsKey(id))
+            throw new FilmNotFoundException(String.format("Attempt to update film with absent id = %d", id));
+        films.put(id, film);
+        log.info("Film {} has been successfully updated", film);
+        return film;
+    }
+
+    @Override
+    public Collection<Film> getFilms() {
+        return films.values();
+    }
+
+    @Override
+    public Film getFilmById(Long id) {
+        if (!films.containsKey(id))
+            throw new FilmNotFoundException(String.format("Request film by id when id is absent, id = %d", id));
+        return films.get(id);
+    }
+
+    @Override
+    public Film deleteFilm(Film film) {
         if (films.containsKey(film.getId())) {
-            films.put(film.getId(), film);
-            return film;
+            log.info("Film {} was deleted", film);
+            return films.remove(film.getId());
         }
-        throw new IllegalArgumentException("Фильм с ID " + film.getId() + " не найден.");
-    }
-
-    // Удаление фильма
-    @Override
-    public void deleteFilm(int id) {
-        films.remove(id);
-    }
-
-    // Получение списка всех фильмов
-    @Override
-    public List<Film> getAllFilms() {
-        return new ArrayList<>(films.values());
-    }
-
-    // Получение фильма по ID
-    @Override
-    public Optional<Film> getFilmById(int id) {
-        return Optional.ofNullable(films.get(id));
+        else throw new FilmNotFoundException(String.format("Attempt to delete film with absent id = %d", film.getId()));
     }
 }

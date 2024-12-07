@@ -1,81 +1,68 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Positive;
-import java.util.List;
+import java.util.Collection;
 
 @RestController
-@RequestMapping("/films")
+@Validated
 @Slf4j
+@RequestMapping("/films")
 public class FilmController {
 
     private final FilmService filmService;
 
+    @Autowired
     public FilmController(FilmService filmService) {
         this.filmService = filmService;
     }
 
-    // Получение фильма по ID
+    @GetMapping
+    public Collection<Film> findAll() {
+        log.info("Request all films");
+        return filmService.getFilms();
+    }
+
     @GetMapping("/{id}")
-    public Film getFilmById(@PathVariable @Positive int id) {
-        log.info("Получение фильма с ID: {}", id);
+    public Film getFilm(@PathVariable Long id) {
+        log.info("Request film by id = {}", id);
         return filmService.getFilmById(id);
     }
 
-    // Создание нового фильма
     @PostMapping
-    public Film createFilm(@RequestBody @Valid Film film) {
-        log.info("Создание нового фильма: {}", film);
+    public Film create(@Valid @RequestBody Film film) {
+        log.info("Request to add film {}", film);
         return filmService.addFilm(film);
     }
 
-    // Обновление фильма
     @PutMapping
-    public Film updateFilm(@RequestBody @Valid Film film) {
-        log.info("Обновление фильма: {}", film);
+    public Film updateFilm(@Valid @RequestBody Film film) {
+        log.info("Request to change film {}", film);
         return filmService.updateFilm(film);
     }
 
-    // Добавление лайка
     @PutMapping("/{id}/like/{userId}")
-    public Film addLike(@PathVariable @Positive int id, @PathVariable @Positive int userId) {
-        log.info("Добавление лайка для фильма с ID: {} от пользователя с ID: {}", id, userId);
-        return filmService.addLike(id, userId);
+    public void likeFilm(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Request from user id = {} put like to film id = {}", userId, id);
+        filmService.addLike(id, userId);
     }
 
-    // Удаление лайка
     @DeleteMapping("/{id}/like/{userId}")
-    public Film removeLike(@PathVariable @Positive int id, @PathVariable @Positive int userId) {
-        log.info("Удаление лайка для фильма с ID: {} от пользователя с ID: {}", id, userId);
-        return filmService.removeLike(id, userId);
+    public void deleteMapping(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Request from user id = {} delete like to film id = {}", userId, id);
+        filmService.removeLike(id, userId);
     }
 
-    // Получение популярных фильмов
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") @Positive int count) {
-        log.info("Получение топ {} популярных фильмов", count);
-        return filmService.getMostPopularFilms(count);
-    }
-
-    // Получение всех фильмов
-    @GetMapping
-    public List<Film> getAllFilms() {
-        log.info("Получение всех фильмов");
-        return filmService.getAllFilms();
-    }
-
-    // Удаление фильма
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteFilm(@PathVariable @Positive int id) {
-        filmService.deleteFilm(id);
-        log.info("Фильм с ID {} был удален", id);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Фильм удален");
+    public Collection<Film> popularFilms(@RequestParam(required = false) Integer count) {
+        log.info("Request best films, count = {}", count);
+        if (count == null) count = 10;
+        return filmService.getFilmsByRating(count);
     }
 }

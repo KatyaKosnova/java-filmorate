@@ -1,72 +1,80 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.util.Comparator;
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class FilmService {
 
     private final FilmStorage filmStorage;
+    private final UserStorage userStorage;
+    private Long id = 0L;
+    private static final LocalDate releaseDate = LocalDate.of(1895, 12, 28);
 
-    public FilmService(FilmStorage filmStorage) {
+    @Autowired
+    public FilmService(@Qualifier("inMemoryFilmStorage") FilmStorage filmStorage,
+                       @Qualifier("inMemoryUserStorage") UserStorage userStorage) {
         this.filmStorage = filmStorage;
+        this.userStorage = userStorage;
     }
 
-    // Добавление нового фильма
+    private Long generateId() {
+        return ++id;
+    }
+
     public Film addFilm(Film film) {
+        if (film.getReleaseDate().isBefore(releaseDate))
+            throw new ValidationException("Attempt to add film " +
+                    "with releaseDate before 28-12-1895");
+        film.setId(generateId());
         return filmStorage.addFilm(film);
     }
 
-    // Обновление информации о фильме
     public Film updateFilm(Film film) {
         return filmStorage.updateFilm(film);
     }
 
-    // Получение фильма по ID
-    public Film getFilmById(int id) {
-        return filmStorage.getFilmById(id)
-                .orElseThrow(() -> new FilmNotFoundException("Фильм с ID " + id + " не найден."));
+    public Collection<Film> getFilms() {
+        return filmStorage.getFilms();
     }
 
-    // Добавление лайка фильму
-    public Film addLike(int filmId, int userId) {
-        Film film = getFilmById(filmId);
-        film.addLike(userId);
-        return film;
+    public Film getFilmById(Long id) {
+        return filmStorage.getFilmById(id);
     }
 
-    // Удаление лайка у фильма
-    public Film removeLike(int filmId, int userId) {
-        Film film = getFilmById(filmId);
-        film.removeLike(userId);
-        return film;
+    public void addLike(Long id, Long userId) {
+        log.info("User id = {} set like film id = {}", userId, id);
+        userStorage.getUserById(userId);
+        // result is ignored because this operation checks that id exists,
+        // if not it will throw the exception
+        filmStorage.getFilmById(id).addLikeFromUser(userId);
     }
 
-    // Получение списка самых популярных фильмов
-    public List<Film> getMostPopularFilms(int count) {
-        if (count <= 0) {
-            throw new IllegalArgumentException("Количество фильмов должно быть больше 0.");
-        }
-        return filmStorage.getAllFilms().stream()
-                .sorted(Comparator.comparingInt(Film::getLikesCount).reversed())
+    public void removeLike(Long id, Long userId) {
+        if (!filmStorage.getFilmById(id).hasLikeFromUser(userId))
+            throw new UserNotFoundException(String.format("User id = %d trying to delete like to film id = %d, " +
+                    "which is absent", userId, id));
+        log.info("User id = {} deleted like to film id = {}", userId, id);
+        filmStorage.getFilmById(id).removeLikeFromUser(userId);
+    }
+
+    public List<Film> getFilmsByRating(int count) {
+        return filmStorage.getFilms().stream()
+                .sorted((x1, x2) -> (x2.getRating() - x1.getRating()))
                 .limit(count)
                 .collect(Collectors.toList());
-    }
-
-    // Удаление фильма по ID
-    public void deleteFilm(int id) {
-        Film film = getFilmById(id);
-        filmStorage.deleteFilm(id);
-    }
-
-    // Получение всех фильмов
-    public List<Film> getAllFilms() {
-        return filmStorage.getAllFilms();
     }
 }

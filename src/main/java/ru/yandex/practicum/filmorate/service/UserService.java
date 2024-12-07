@@ -1,98 +1,82 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class UserService {
-
     private final UserStorage userStorage;
+    private Long id = 0L;
 
-    public UserService(UserStorage userStorage) {
+    @Autowired
+    public UserService(@Qualifier("inMemoryUserStorage") UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
-    // Добавить пользователя
+    private Long generateId() {
+        return ++id;
+    }
+
     public User addUser(User user) {
-        if (userStorage.getUserById(user.getId()) != null) {
-            throw new IllegalArgumentException("Пользователь с таким ID уже существует.");
-        }
+        user.setId(generateId());
         return userStorage.addUser(user);
     }
 
-    // Обновить пользователя
     public User updateUser(User user) {
-        User existingUser = userStorage.getUserById(user.getId());
-        if (existingUser == null) {
-            throw new IllegalArgumentException("Пользователь с таким ID не найден.");
-        }
         return userStorage.updateUser(user);
     }
-
-    // Удалить пользователя (если необходимо)
-    public void deleteUser(int id) {
+    public Collection<User> getUsers() {
+        return userStorage.getUsers();
+    }
+    public User deleteUser(User user) {
+        return userStorage.deleteUser(user);
+    }
+    public User getUserById(Long id) {
+        return userStorage.getUserById(id);
+    }
+    public void addFriend(Long id, Long friendId) {
         User user = userStorage.getUserById(id);
-        if (user == null) {
-            throw new IllegalArgumentException("Пользователь с таким ID не найден.");
-        }
-        userStorage.deleteUser(id);
+        User userFriend = userStorage.getUserById(friendId);
+        user.getFriends().add(friendId);
+        userFriend.getFriends().add(id);
+        log.info("User id = {} added to friends user id={}", id, friendId);
     }
 
-    // Получить список всех пользователей
-    public List<User> getAllUsers() {
-        return userStorage.getAllUsers();
+    public void deleteFriend(Long id, Long friendId) {
+        User user = userStorage.getUserById(id);
+        User userFriend = userStorage.getUserById(friendId);
+        user.getFriends().remove(friendId);
+        userFriend.getFriends().remove(id);
+        log.info("User id = {} deleted from friends user id={}", id, friendId);
     }
 
-    // Добавить друга
-    public void addFriend(int userId, int friendId) {
-        User user = getUserById(userId);
-        User friend = getUserById(friendId);
-        if (user.isFriend(friendId)) {
-            throw new IllegalArgumentException("Этот пользователь уже в списке друзей.");
-        }
-        user.addFriend(friendId);
-        friend.addFriend(userId);
-    }
-
-    // Удалить друга
-    public void removeFriend(int userId, int friendId) {
-        User user = getUserById(userId);
-        User friend = getUserById(friendId);
-        user.removeFriend(friendId);
-        friend.removeFriend(userId);
-    }
-
-    // Получить список друзей пользователя в виде List<User>
-    public List<User> getFriends(int userId) {
-        User user = getUserById(userId);
-        List<User> friends = new ArrayList<>();
-        for (Integer friendId : user.getFriends()) {
-            User friend = userStorage.getUserById(friendId);
-            if (friend != null) {
-                friends.add(friend);
-            }
+    public Collection<User> findFriends(Long id) {
+        Collection<User> friends = new ArrayList<>();
+        for (Long friendId : userStorage.getUserById(id).getFriends()) {
+            if (userStorage.getUserById(friendId) != null)
+                friends.add(userStorage.getUserById(friendId));
         }
         return friends;
     }
 
-    // Получить общих друзей
-    public List<User> getCommonFriends(int userId, int otherId) {
-        List<User> friends = new ArrayList<>(getFriends(userId));
-        List<User> otherFriends = getFriends(otherId);
-        friends.retainAll(otherFriends);
-        return friends;
-    }
-
-    // Получить пользователя по ID
-    public User getUserById(int id) {
+    public Collection<User> findSharedFriends(Long id, Long otherId) {
         User user = userStorage.getUserById(id);
-        if (user == null) {
-            throw new IllegalArgumentException("Пользователь с ID " + id + " не найден.");
-        }
-        return user;
+        User otherUser = userStorage.getUserById(otherId);
+        List<Long> idUsers = userStorage.getUsers().stream().map(User::getId).collect(Collectors.toList());
+        return user.getFriends().stream()
+                .filter(x -> otherUser.getFriends().contains(x))
+                .filter(idUsers::contains)
+                .map(userStorage::getUserById)
+                .collect(Collectors.toList());
     }
 }
