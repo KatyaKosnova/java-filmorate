@@ -77,4 +77,22 @@ public class FilmService {
                 .limit(count)
                 .collect(Collectors.toList());
     }
+
+    public Film createFilm(Film film) {
+        // Применяем логику проверки
+        if (film.getName() == null || film.getName().isEmpty()) {
+            throw new IllegalArgumentException("Film name cannot be null or empty");
+        }
+        if (film.getDescription() == null || film.getDescription().isEmpty()) {
+            throw new IllegalArgumentException("Film description cannot be null or empty");
+        }
+        if (film.getReleaseDate() == null || film.getReleaseDate().isBefore(LocalDate.of(1900, 1, 1))) {
+            throw new IllegalArgumentException("Film release date must be valid and not earlier than 1900");
+        }
+        if (film.getDuration() <= 0) {
+            throw new IllegalArgumentException("Film duration must be positive");
+        }
+
+        return film;
+    }
 }

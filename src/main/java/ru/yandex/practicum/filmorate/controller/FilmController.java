@@ -8,6 +8,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -40,9 +43,19 @@ public class FilmController {
     }
 
     @PostMapping
-    public Film create(@Valid @RequestBody Film film) {
-        log.info("Request to add film {}", film);
-        return filmService.addFilm(film);
+    public ResponseEntity<Film> createFilm(@Valid @RequestBody Film film) {
+        try {
+            log.info("Request to add film {}", film);
+            // Пытаемся создать фильм
+            Film savedFilm = filmService.addFilm(film);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedFilm);
+        } catch (ResponseStatusException e) {
+            // Ловим ResponseStatusException для обработки ошибок валидации
+            return ResponseEntity.status(e.getStatusCode()).body(null);
+        } catch (Exception e) {
+            // Обрабатываем другие непредвиденные ошибки (например, ошибки сервера)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @PutMapping
@@ -79,4 +92,17 @@ public class FilmController {
         return new ResponseEntity<>(message.toString(), HttpStatus.BAD_REQUEST);
     }
 
+    @PostMapping("/{filmId}/like/{userId}")
+    public ResponseEntity<?> addLike(@PathVariable Long filmId, @PathVariable Long userId) {
+        try {
+            filmService.addLike(filmId, userId);
+            return ResponseEntity.ok().build();
+        } catch (FilmNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Film not found");
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+    }
 }
