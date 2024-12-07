@@ -2,69 +2,67 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
 @Slf4j
 public class UserController {
 
-    private final Map<Integer, User> users = new HashMap<>();
-    private int idCounter = 1;
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @PostMapping
     public User createUser(@RequestBody User user) {
-        validateUser(user);
-        user.setId(idCounter++);
-        users.put(user.getId(), user);
-        log.info("Создан пользователь: {}", user);
-        return user;
+        log.info("Создание пользователя: {}", user);
+        return userService.addUser(user);
     }
 
     @PutMapping
     public User updateUser(@RequestBody User user) {
-        validateUser(user);
-
-        if (users.containsKey(user.getId())) {
-            users.put(user.getId(), user);
-            log.info("Обновлён пользователь: {}", user);
-            return user;
-        }
-
-        log.error("Пользователь с id {} не найден для обновления", user.getId());
-        throw new UserNotFoundException("User not found for update");
+        log.info("Обновление пользователя: {}", user);
+        return userService.updateUser(user);
     }
 
+    @GetMapping("/{id}")
+    public User getUserById(@PathVariable int id) {
+        log.info("Получение пользователя с ID: {}", id);
+        return userService.getUserById(id);
+    }
 
     @GetMapping
     public List<User> getAllUsers() {
-        return new ArrayList<>(users.values());
+        log.info("Получение списка всех пользователей");
+        return userService.getAllUsers();
     }
 
-    public void validateUser(User user) {
-        if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
-            log.error("Ошибка валидации пользователя: некорректный email.");
-            throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ '@'.");
-        }
-        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            log.error("Ошибка валидации пользователя: логин не может быть пустым и содержать пробелы.");
-            throw new ValidationException("Логин не может быть пустым и не должен содержать пробелы.");
-        }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            log.error("Ошибка валидации пользователя: дата рождения не может быть в будущем.");
-            throw new ValidationException("Дата рождения не может быть в будущем.");
-        }
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-            log.info("Имя пользователя пустое, установлено значение по умолчанию: {}", user.getLogin());
-        }
+    @PutMapping("/{id}/friends/{friendId}")
+    public void addFriend(@PathVariable int id, @PathVariable int friendId) {
+        log.info("Добавление друга: {} к {}", friendId, id);
+        userService.addFriend(id, friendId);
+    }
+
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void removeFriend(@PathVariable int id, @PathVariable int friendId) {
+        log.info("Удаление друга: {} у {}", friendId, id);
+        userService.removeFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public List<User> getFriends(@PathVariable int id) {
+        log.info("Получение списка друзей пользователя с ID: {}", id);
+        return userService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public List<User> getCommonFriends(@PathVariable int id, @PathVariable int otherId) {
+        log.info("Получение общих друзей пользователей с ID: {} и {}", id, otherId);
+        return userService.getCommonFriends(id, otherId);
     }
 }
