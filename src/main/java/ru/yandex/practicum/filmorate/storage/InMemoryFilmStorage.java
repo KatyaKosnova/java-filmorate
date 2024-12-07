@@ -24,8 +24,9 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public Film updateFilm(Film film) {
         Long id = film.getId();
-        if (!films.containsKey(id))
+        if (!films.containsKey(id)) {
             throw new FilmNotFoundException(String.format("Attempt to update film with absent id = %d", id));
+        }
         films.put(id, film);
         log.info("Film {} has been successfully updated", film);
         return film;
@@ -38,8 +39,9 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public Film getFilmById(Long id) {
-        if (!films.containsKey(id))
+        if (!films.containsKey(id)) {
             throw new FilmNotFoundException(String.format("Request film by id when id is absent, id = %d", id));
+        }
         return films.get(id);
     }
 
@@ -48,7 +50,8 @@ public class InMemoryFilmStorage implements FilmStorage {
         if (films.containsKey(film.getId())) {
             log.info("Film {} was deleted", film);
             return films.remove(film.getId());
+        } else {
+            throw new FilmNotFoundException(String.format("Attempt to delete film with absent id = %d", film.getId()));
         }
-        else throw new FilmNotFoundException(String.format("Attempt to delete film with absent id = %d", film.getId()));
     }
 }
