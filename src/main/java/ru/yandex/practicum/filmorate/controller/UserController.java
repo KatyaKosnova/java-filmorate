@@ -48,8 +48,7 @@ public class UserController {
                     .collect(Collectors.joining(", "));
             return ResponseEntity.badRequest().body(new ErrorResponse("Validation failed: " + errorMessage));
         }
-        log.info("Request to add user {}", user);
-        User createdUser = userService.addUser(user);  // Метод должен вернуть пользователя
+        User createdUser = userService.addUser(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 

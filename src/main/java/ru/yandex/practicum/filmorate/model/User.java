@@ -12,7 +12,7 @@ import java.util.Set;
 public class User {
     private Long id;
 
-    @NotNull
+    @NotNull(message = "Email is mandatory")
     @Email(message = "Email is not valid")
     private String email;
 
