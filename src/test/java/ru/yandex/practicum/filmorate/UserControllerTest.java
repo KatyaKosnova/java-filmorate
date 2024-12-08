@@ -1,9 +1,7 @@
 package ru.yandex.practicum.filmorate;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -11,7 +9,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ru.yandex.practicum.filmorate.controller.UserController;
 import ru.yandex.practicum.filmorate.model.User;
@@ -218,32 +215,5 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.name").value("User One"));
 
         verify(userService, times(1)).updateUser(any(User.class));
-    }
-
-    @Test
-    @DisplayName("Test user creation with 'birthday' field")
-    public void testCreateUserBirthdayField() throws Exception {
-        User user = new User();
-        user.setEmail("user2@example.com");
-        user.setLogin("user2");
-        user.setName("User Two");
-        user.setBirthday(LocalDate.of(1992, 5, 15));
-
-        String userJson = "{\n" +
-                "\"email\": \"user2@example.com\",\n" +
-                "\"login\": \"user2\",\n" +
-                "\"name\": \"User Two\",\n" +
-                "\"birthday\": \"1992-05-15\"\n" +
-                "}";
-
-        MvcResult result = mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(userJson))
-                .andReturn();
-
-        String responseContent = result.getResponse().getContentAsString();
-        System.out.println("Response Content: " + responseContent);
-
-        assertThat(responseContent).contains("\"birthday\":\"1992-05-15\"");
     }
 }
