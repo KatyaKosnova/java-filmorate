@@ -17,11 +17,7 @@ class FilmTest {
 
     @Test
     void testFilmValidation_ValidFilm() {
-        Film film = new Film();
-        film.setName("Valid Movie");
-        film.setDescription("Valid description of a movie.");
-        film.setReleaseDate(LocalDate.of(1999, 1, 1)); // Дата релиза, которая подходит
-        film.setDuration(120); // Положительная продолжительность
+        Film film = new Film("Valid Movie", "Valid description of a movie.", LocalDate.of(1999, 1, 1), 120);
 
         BeanPropertyBindingResult errors = new BeanPropertyBindingResult(film, "film");
         ValidationUtils.invokeValidator(validator, film, errors);
@@ -30,11 +26,7 @@ class FilmTest {
 
     @Test
     void testFilmValidation_InvalidFilm() {
-        Film film = new Film();
-        film.setName(""); // Пустое название
-        film.setDescription("Short description"); // Длинное описание
-        film.setReleaseDate(LocalDate.of(1800, 1, 1)); // Неверная дата релиза
-        film.setDuration(-1); // Неверная продолжительность
+        Film film = new Film("", "Short description", LocalDate.of(1800, 1, 1), -1);
 
         BeanPropertyBindingResult errors = new BeanPropertyBindingResult(film, "film");
         ValidationUtils.invokeValidator(validator, film, errors);

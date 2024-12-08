@@ -1,19 +1,41 @@
 package ru.yandex.practicum.filmorate.model;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
+import javax.validation.constraints.*;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
-/**
- * Film.
- */
-@Getter
-@Setter
+@Data
 public class Film {
-    private int id;                // целочисленный идентификатор
-    private String name;           // название фильма
-    private String description;     // описание фильма
-    private LocalDate releaseDate;  // дата релиза
-    private int duration;           // продолжительность фильма в минутах
+    private Long id;
+    @NotBlank private String name;
+    @NotBlank @Size(max = 200) private String description;
+    @NotNull @Past private LocalDate releaseDate;
+    @NotNull @Positive private int duration;
+    private Set<Long> likes = new HashSet<>();
+
+    public Film(String name, String description, LocalDate releaseDate, int duration) {
+        this.name = name;
+        this.description = description;
+        this.releaseDate = releaseDate;
+        this.duration = duration;
+    }
+
+    public int getRating() {
+        return likes.size();
+    }
+
+    public boolean hasLikeFromUser(Long userId) {
+        return likes.contains(userId);
+    }
+
+    public void addLikeFromUser(Long userId) {
+        likes.add(userId);
+    }
+
+    public void removeLikeFromUser(Long userId) {
+        likes.remove(userId);
+    }
 }
