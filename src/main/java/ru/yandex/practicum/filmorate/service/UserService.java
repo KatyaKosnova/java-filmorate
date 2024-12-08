@@ -10,6 +10,7 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +22,11 @@ public class UserService {
     @Autowired
     public UserService(@Qualifier("inMemoryUserStorage") UserStorage userStorage) {
         this.userStorage = userStorage;
+    }
+
+
+    public List<Long> getCommonFriends(Long userId, Long otherId) {
+        return userStorage.getCommonFriends(userId, otherId);  // Вызов метода хранилища
     }
 
     private Long generateId() {
@@ -49,12 +55,33 @@ public class UserService {
     }
 
     public void addFriend(Long id, Long friendId) {
+        // Получаем пользователей по их ID
         User user = userStorage.getUserById(id);
         User userFriend = userStorage.getUserById(friendId);
-        user.getFriends().add(friendId);
-        userFriend.getFriends().add(id);
-        log.info("User id = {} added to friends user id={}", id, friendId);
+
+        // Проверяем, существуют ли оба пользователя
+        if (user == null) {
+            log.error("User with id {} not found", id);
+            throw new IllegalArgumentException("User not found");
+        }
+        if (userFriend == null) {
+            log.error("Friend with id {} not found", friendId);
+            throw new IllegalArgumentException("Friend not found");
+        }
+
+        // Проверяем, не являются ли они уже друзьями
+        if (user.getFriends().contains(friendId)) {
+            log.warn("User id = {} and friend id = {} are already friends", id, friendId);
+            return;  // Можно вернуть, если уже являются друзьями
+        }
+
+        // Добавляем друга в коллекцию друзей
+        user.addFriend(friendId);
+        userFriend.addFriend(id);
+
+        log.info("User id = {} added user id = {} to friends", id, friendId);
     }
+
 
     public void deleteFriend(Long id, Long friendId) {
         User user = userStorage.getUserById(id);
@@ -76,11 +103,17 @@ public class UserService {
     public Collection<User> findSharedFriends(Long id, Long otherId) {
         User user = userStorage.getUserById(id);
         User otherUser = userStorage.getUserById(otherId);
-        List<Long> idUsers = userStorage.getUsers().stream().map(User::getId).collect(Collectors.toList());
+
+        // Проверка на null, если хотя бы один из пользователей не найден
+        if (user == null || otherUser == null) {
+            throw new IllegalArgumentException("One or both users not found");
+        }
+
+        // Получаем список общих друзей с использованием Set для улучшения производительности
         return user.getFriends().stream()
-                .filter(x -> otherUser.getFriends().contains(x))
-                .filter(idUsers::contains)
-                .map(userStorage::getUserById)
+                .filter(otherUser.getFriends()::contains)  // Проверяем, есть ли друг у другого пользователя
+                .map(userStorage::getUserById)  // Преобразуем ID в объекты User
+                .filter(Objects::nonNull)  // Проверяем, что объект не равен null
                 .collect(Collectors.toList());
     }
 }

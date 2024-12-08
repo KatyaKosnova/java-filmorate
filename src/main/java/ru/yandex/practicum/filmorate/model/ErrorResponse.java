@@ -1,13 +1,19 @@
 package ru.yandex.practicum.filmorate.model;
 
 public class ErrorResponse {
-    private final String error;
+    private String message;
 
-    public ErrorResponse(String error) {
-        this.error = error;
+    // Конструктор
+    public ErrorResponse(String message) {
+        this.message = message;
     }
 
-    public String getError() {
-        return error;
+    // Геттер и сеттер
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

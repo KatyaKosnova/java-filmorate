@@ -5,9 +5,8 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component("inMemoryUserStorage")
@@ -49,5 +48,34 @@ public class InMemoryUserStorage implements UserStorage {
         if (!users.containsKey(id))
             throw new UserNotFoundException(String.format("Request user with absent id = %d", id));
         return users.get(id);
+    }
+
+    @Override
+    public List<Long> getCommonFriends(Long userId, Long otherId) {
+        User user1 = users.get(userId);
+        User user2 = users.get(otherId);
+
+        if (user1 == null || user2 == null) {
+            throw new IllegalArgumentException("One or both users not found");
+        }
+
+        // Фильтруем общих друзей на основе идентификаторов
+        return user1.getFriends().stream()  // Предполагается, что getFriends() возвращает Set<Long>
+                .filter(user2.getFriends()::contains)  // Проверяем, является ли друг из user1 другом и для user2
+                .collect(Collectors.toList());  // Возвращаем список ID общих друзей
+    }
+
+
+    public Collection<User> getFriendsByUserId(Long id) {
+        User user = getUserById(id);  // Получаем пользователя по ID
+        if (user == null) {
+            return Collections.emptyList();  // Если пользователь не найден, возвращаем пустой список
+        }
+
+        // Преобразуем ID друзей в объекты User, используя userStorage (или аналогичный сервис)
+        return user.getFriends().stream()
+                .map(this::getUserById)  // Получаем User по ID
+                .filter(Objects::nonNull)  // Фильтруем null значения
+                .collect(Collectors.toSet());  // Возвращаем уникальные объекты User
     }
 }

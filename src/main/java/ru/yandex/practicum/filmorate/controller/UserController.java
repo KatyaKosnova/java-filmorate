@@ -2,13 +2,20 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
+import ru.yandex.practicum.filmorate.model.ErrorResponse;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import javax.validation.Valid;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 @RestController
 @Validated
@@ -35,15 +42,28 @@ public class UserController {
     }
 
     @PostMapping
-    public User create(@Valid @RequestBody User user) {
+    public ResponseEntity<?> create(@Valid @RequestBody User user, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            String errorMessage = bindingResult.getAllErrors().stream()
+                    .map(ObjectError::getDefaultMessage)
+                    .collect(Collectors.joining(", "));
+            return ResponseEntity.badRequest().body("Validation failed: " + errorMessage);
+        }
         log.info("Request to add user {}", user);
-        return userService.addUser(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.addUser(user));
     }
 
     @PutMapping
-    public User updateUser(@Valid @RequestBody User user) {
+    public ResponseEntity<?> updateUser(@Valid @RequestBody User user, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            String errorMessage = bindingResult.getAllErrors().stream()
+                    .map(ObjectError::getDefaultMessage)
+                    .collect(Collectors.joining(", "));
+            return ResponseEntity.badRequest().body(new ErrorResponse("Validation failed: " + errorMessage));
+        }
         log.info("Request update user {}", user);
-        return userService.updateUser(user);
+        User updatedUser = userService.updateUser(user);
+        return ResponseEntity.ok(updatedUser); // Status 200
     }
 
     @PutMapping("/{id}/friends/{friendId}")

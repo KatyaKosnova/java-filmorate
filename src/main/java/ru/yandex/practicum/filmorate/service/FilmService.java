@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ResourceNotFoundException;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -38,56 +40,60 @@ public class FilmService {
     }
 
     public Film addFilm(Film film) {
-        if (film.getReleaseDate().isBefore(releaseDate))
-            throw new ValidationException("Attempt to add film " +
-                    "with releaseDate before 28-12-1895");
+        validateFilm(film); // Вынесем валидацию в отдельный метод для лучшей читаемости
         film.setId(generateId());
+        log.info("Adding new film: {}, release date: {}, duration: {} minutes",
+                film.getName(), film.getReleaseDate(), film.getDuration());
         return filmStorage.addFilm(film);
     }
 
-    public Film updateFilm(Film film) {
+    public Film updateFilm(Film film) throws FilmNotFoundException {
+        log.info("Updating film with id {}: {}", film.getId(), film.getName());
         return filmStorage.updateFilm(film);
     }
 
     public Collection<Film> getFilms() {
+        log.info("Fetching all films");
         return filmStorage.getFilms();
     }
 
-    public Film getFilmById(Long id) {
-        return filmStorage.getFilmById(id);
+    public Film getFilmById(Long id) throws FilmNotFoundException {
+        Film film = filmStorage.getFilmById(id);
+        if (film == null) {
+            throw new FilmNotFoundException("Film not found with id: " + id);
+        }
+        return film;
     }
 
-    public void addLike(Long filmId, Long userId) {
-        // Проверяем наличие фильма
-        Film film = filmStorage.getFilmById(filmId);
-        if (film == null) {
-            throw new ResourceNotFoundException("Film not found with id: " + filmId);  // выбрасываем исключение, если фильма нет
-        }
-
-        // Проверяем наличие пользователя
-        userStorage.getUserById(userId);  // если пользователь не найден, будет выброшено исключение
+    public void addLike(Long filmId, Long userId) throws FilmNotFoundException {
+        Film film = getFilmById(filmId);
+        userStorage.getUserById(userId); // Проверяем наличие пользователя
+        log.info("User id = {} liked film id = {}", userId, filmId);
         film.addLikeFromUser(userId);
     }
 
-    public void removeLike(Long id, Long userId) {
-        Film film = filmStorage.getFilmById(id);  // Получаем фильм
+    public void removeLike(Long id, Long userId) throws FilmNotFoundException {
+        Film film = getFilmById(id);
         if (!film.hasLikeFromUser(userId)) {
-            throw new UserNotFoundException(String.format("User id = %d trying to delete like to film id = %d, " +
-                    "which is absent", userId, id));
+            throw new UserNotFoundException(String.format("User id = %d trying to delete like to film id = %d, which is absent", userId, id));
         }
-        log.info("User id = {} deleted like to film id = {}", userId, id);
-        film.removeLikeFromUser(userId);  // Удаляем лайк
+        log.info("User id = {} removed like from film id = {}", userId, id);
+        film.removeLikeFromUser(userId);
     }
 
     public List<Film> getFilmsByRating(int count) {
-        return filmStorage.getFilms().stream()
-                .sorted(Comparator.comparingInt(Film::getRating).reversed())  // Сортируем по рейтингу
-                .limit(count)
-                .collect(Collectors.toList());
+        log.info("Fetching top {} films by rating", count);
+        return filmStorage.getFilmsByRating(count);
     }
 
     public Film createFilm(Film film) {
-        // Применяем логику проверки
+        validateFilm(film);
+        film.setId(generateId());
+        log.info("Creating new film: {}", film.getName());
+        return filmStorage.addFilm(film);
+    }
+
+    private void validateFilm(Film film) {
         if (film.getName() == null || film.getName().isEmpty()) {
             throw new IllegalArgumentException("Film name cannot be null or empty");
         }
@@ -100,8 +106,5 @@ public class FilmService {
         if (film.getDuration() <= 0) {
             throw new IllegalArgumentException("Film duration must be positive");
         }
-
-        film.setId(generateId());
-        return filmStorage.addFilm(film);  // Сохраняем фильм в хранилище
     }
 }

@@ -9,12 +9,15 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ResourceNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import javax.validation.Valid;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @Validated
@@ -31,12 +34,11 @@ public class FilmController {
 
     @GetMapping
     public Collection<Film> findAll() {
-        log.info("Request all films");
-        return filmService.getFilms();
+        return filmService.getFilms(); // Передача ответственности сервису
     }
 
     @GetMapping("/{id}")
-    public Film getFilm(@PathVariable Long id) {
+    public Film getFilm(@PathVariable Long id) throws FilmNotFoundException {
         log.info("Request film by id = {}", id);
         return filmService.getFilmById(id);
     }
@@ -44,36 +46,41 @@ public class FilmController {
 
     @PostMapping
     public ResponseEntity<Film> createFilm(@Valid @RequestBody Film film) {
-        try {
-            log.info("Request to add film {}", film);
-            // Пытаемся создать фильм
-            Film savedFilm = filmService.addFilm(film);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedFilm);
-        } catch (ResponseStatusException e) {
-            // Ловим ResponseStatusException для обработки ошибок валидации
-            return ResponseEntity.status(e.getStatusCode()).body(null);
-        } catch (Exception e) {
-            // Обрабатываем другие непредвиденные ошибки (например, ошибки сервера)
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+        log.info("Request to add film {}", film);
+        Film savedFilm = filmService.addFilm(film);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedFilm);
     }
 
     @PutMapping
-    public Film updateFilm(@Valid @RequestBody Film film) {
+    public Film updateFilm(@Valid @RequestBody Film film) throws FilmNotFoundException {
         log.info("Request to change film {}", film);
         return filmService.updateFilm(film);
     }
 
     @PutMapping("/{id}/like/{userId}")
-    public void likeFilm(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Request from user id = {} put like to film id = {}", userId, id);
-        filmService.addLike(id, userId);
+    public ResponseEntity<String> likeFilm(@PathVariable Long id, @PathVariable Long userId) {
+        try {
+            log.info("Request from user id = {} put like to film id = {}", userId, id);
+            filmService.addLike(id, userId);
+            return ResponseEntity.ok("Like added successfully");
+        } catch (FilmNotFoundException ex) {
+            log.error("Film not found with id = {}", id, ex);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Film not found with id: " + id);
+        }
     }
 
     @DeleteMapping("/{id}/like/{userId}")
-    public void deleteMapping(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Request from user id = {} delete like to film id = {}", userId, id);
-        filmService.removeLike(id, userId);
+    public ResponseEntity<String> deleteMapping(@PathVariable Long id, @PathVariable Long userId) {
+        try {
+            log.info("Request from user id = {} delete like to film id = {}", userId, id);
+            filmService.removeLike(id, userId);
+            return ResponseEntity.ok("Like removed successfully");
+        } catch (FilmNotFoundException ex) {
+            log.error("Film not found with id = {}", id, ex);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Film not found with id: " + id);
+        }
     }
 
     @GetMapping("/popular")
@@ -96,11 +103,24 @@ public class FilmController {
     public ResponseEntity<?> addLike(@PathVariable Long filmId, @PathVariable Long userId) {
         try {
             filmService.addLike(filmId, userId);  // Вызов метода добавления лайка
-            return ResponseEntity.ok().build();  // Возвращаем 200 OK, если все прошло успешно
+
+            // Возвращаем JSON-ответ с сообщением о том, что лайк был успешно добавлен
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Like added successfully");
+
+            return ResponseEntity.ok(response);  // Возвращаем 200 OK с JSON-ответом
         } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());  // Возвращаем 404, если ресурс не найден
+            // Возвращаем 404, если ресурс не найден
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");  // Возвращаем 500, если ошибка на сервере
+            // Возвращаем 500, если ошибка на сервере
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Internal server error");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
 }
+
