@@ -46,10 +46,11 @@ public class UserController {
             String errorMessage = bindingResult.getAllErrors().stream()
                     .map(ObjectError::getDefaultMessage)
                     .collect(Collectors.joining(", "));
-            return ResponseEntity.badRequest().body("Validation failed: " + errorMessage);
+            return ResponseEntity.badRequest().body(new ErrorResponse("Validation failed: " + errorMessage));
         }
         log.info("Request to add user {}", user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.addUser(user));
+        User createdUser = userService.addUser(user);  // Метод должен вернуть пользователя
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 
     @PutMapping

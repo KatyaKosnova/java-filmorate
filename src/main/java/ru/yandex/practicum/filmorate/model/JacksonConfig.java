@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
@@ -8,11 +9,10 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 @Configuration
 public class JacksonConfig {
-
     @Bean
-    public ObjectMapper objectMapper() {
+    public Jackson2ObjectMapperBuilder jacksonBuilder() {
         return Jackson2ObjectMapperBuilder.json()
-                .modulesToInstall(new JavaTimeModule()) // Регистрация JavaTimeModule
-                .build();
+                .modulesToInstall(new JavaTimeModule())
+                .featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 }

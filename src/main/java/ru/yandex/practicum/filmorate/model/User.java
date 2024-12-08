@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import javax.validation.constraints.*;
@@ -24,6 +25,7 @@ public class User {
 
     @NotNull(message = "Birthday is mandatory")
     @Past(message = "Birthday cannot be in the future")
+    @JsonFormat(pattern = "yyyy-MM-dd")  // Обеспечивает правильный формат
     private LocalDate birthday;
 
     @NotNull

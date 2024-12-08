@@ -16,8 +16,8 @@ public class InMemoryUserStorage implements UserStorage {
     @Override
     public User addUser(User user) {
         users.put(user.getId(), user);
-        log.info("New user added: {}", user);
-        return user;
+        log.info("New user added: {}", user);  // Logs the user that was added
+        return user;  // Returning the added user
     }
 
     @Override
